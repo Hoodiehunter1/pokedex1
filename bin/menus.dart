@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:mysql1/mysql1.dart';
+import 'info.dart';
+import 'pokeapi_service.dart';
 
 class Menu {
   static Future<void> menuInicio() async {
@@ -86,18 +88,18 @@ class Menu {
     int? opcion;
     do {
       print("\n¿Qué quieres hacer?");
-      stdout.writeln(
-          "1 - Acceder a la Pokedex | 2 - EspacioEnBlanco | 3 - Salir");
+      stdout
+          .writeln("1 - Acceder a la Pokedex | 2 - Buscar Pokémon | 3 - Salir");
       String respuesta = stdin.readLineSync() ?? "ERROR";
       opcion = int.tryParse(respuesta) ?? 0;
 
       switch (opcion) {
         case 1:
-          // Lógica para acceder a la Pokedex
+          await mostrarPokedex(conn);
           break;
 
         case 2:
-          // Lógica para EspacioEnBlanco
+          await buscarPokemon();
           break;
 
         case 3:
@@ -109,6 +111,90 @@ class Menu {
           break;
       }
     } while (opcion != 3);
+  }
+
+  static Future<void> mostrarPokedex(MySqlConnection conn) async {
+    try {
+      print("\nMostrando lista de Pokémon...");
+      final pokemonList = await PokeApiService.getPokemonList(20);
+
+      for (var pokemon in pokemonList) {
+        print("- ${pokemon['name']}");
+      }
+
+      print("\n¿Quieres ver detalles de algún Pokémon? (s/n)");
+      String respuesta = stdin.readLineSync()?.toLowerCase() ?? "n";
+
+      if (respuesta == "s") {
+        print("Introduce el nombre del Pokémon:");
+        String nombre = stdin.readLineSync()?.toLowerCase() ?? "";
+        await mostrarDetallesPokemon(nombre, conn);
+      }
+    } catch (e) {
+      print("Error al mostrar la Pokédex: $e");
+    }
+  }
+
+  static Future<void> buscarPokemon() async {
+    try {
+      print("\nIntroduce el nombre o ID del Pokémon que buscas:");
+      String identifier = stdin.readLineSync()?.trim() ?? "";
+
+      final pokemonData = await PokeApiService.getPokemonData(identifier);
+      final pokemon = PokeApiService.mapApiDataToPokemon(pokemonData);
+
+      print("\nInformación de ${pokemon.nombre}:");
+      print("Vida: ${pokemon.vida}");
+      print("Ataque: ${pokemon.ataque}");
+      print("Defensa: ${pokemon.defensa}");
+      print("Ataque Especial: ${pokemon.ataqueEspecial}");
+      print("Defensa Especial: ${pokemon.defensaEspecial}");
+      print("Velocidad: ${pokemon.velocidad}");
+      print("Habilidades: ${pokemon.habilidades.join(", ")}");
+      print("Habilidad principal: ${pokemon.habilidad}");
+    } catch (e) {
+      print("Error al buscar el Pokémon: $e");
+    }
+  }
+
+  static Future<void> mostrarDetallesPokemon(
+      String nombre, MySqlConnection conn) async {
+    try {
+      final pokemonData = await PokeApiService.getPokemonData(nombre);
+      final pokemon = PokeApiService.mapApiDataToPokemon(pokemonData);
+
+      print("\nDetalles de ${pokemon.nombre}:");
+      print("Estadísticas:");
+      print("- Vida: ${pokemon.vida}");
+      print("- Ataque: ${pokemon.ataque}");
+      print("- Defensa: ${pokemon.defensa}");
+      print("- Ataque Especial: ${pokemon.ataqueEspecial}");
+      print("- Defensa Especial: ${pokemon.defensaEspecial}");
+      print("- Velocidad: ${pokemon.velocidad}");
+      print("\nHabilidades: ${pokemon.habilidades.join(", ")}");
+
+      print("\n¿Quieres guardar este Pokémon en tu base de datos? (s/n)");
+      String respuesta = stdin.readLineSync()?.toLowerCase() ?? "n";
+
+      if (respuesta == "s") {
+        await guardarPokemonEnBD(pokemon, conn);
+      }
+    } catch (e) {
+      print("Error al mostrar detalles del Pokémon: $e");
+    }
+  }
+
+  static Future<void> guardarPokemonEnBD(
+      Pokemon pokemon, MySqlConnection conn) async {
+    try {
+      await conn.query(
+        'INSERT INTO pokemon (nombre) VALUES (?) ON DUPLICATE KEY UPDATE nombre=nombre',
+        [pokemon.nombre],
+      );
+      print("${pokemon.nombre} guardado en tu base de datos!");
+    } catch (e) {
+      print("Error al guardar el Pokémon: $e");
+    }
   }
 
   static Future<bool> iniciarSesion(MySqlConnection conn) async {

@@ -9,3 +9,5 @@ main() async {
   BaseDatos.installBBDD();
   await Menu.menuInicio();
 }
+
+// cd bin dart pokedex.dart

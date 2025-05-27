@@ -26,7 +26,6 @@ class BaseDatos {
 
   // Crear la base de datos si no existe / FUNCION
   static _crearBBDD(MySqlConnection conn) async {
-    await conn.query('USE proyectodart;');
     print("Conectado a la base de datos 'proyectodart'.");
     await conn.query('CREATE DATABASE IF NOT EXISTS proyectodart');
     print("Base de datos 'proyectodart' creada o ya existente.");

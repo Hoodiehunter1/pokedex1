@@ -11,7 +11,6 @@ class BaseDatos {
       host: 'localhost',
       port: 3306,
       user: 'root',
-      db: 'proyectodart',
     );
     var conn = await MySqlConnection.connect(settings);
     try {
